@@ -13,7 +13,6 @@
 
 float tempCelcius = 0.0f;
 float humidity = 0.0f;
-const int led = 13;
 
 //global devices
 Adafruit_SSD1306 display = Adafruit_SSD1306();
@@ -33,16 +32,19 @@ DHT dht(DHTPIN, DHTTYPE);
 ESP8266WebServer server(80);
 
 void handleRoot() {
-	digitalWrite(led, 1);
+	digitalWrite(LED_BUILTIN, LOW); //note on the huzza LED low is high!
 	static char json[512];
 	sprintf(json, "{\"temperature\":%f, \"humidity\":%f}", tempCelcius, humidity);
 	server.send(200, "application/json", json);
-	digitalWrite(led, 0);
+	digitalWrite(LED_BUILTIN, HIGH);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 void setup() {
+
+	pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
+	digitalWrite(LED_BUILTIN, HIGH);
 
 	Serial.begin(115200);
 	Serial.println("Temperature Test");
@@ -95,7 +97,7 @@ void setup() {
 
 void loop() {
 
-	delay(1000);
+	delay(100);
 
 	// Reading temperature or humidity takes about 250 milliseconds!
 	// Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
@@ -128,9 +130,11 @@ void updateDisplay(){
 
 	//print Temp and H (2 lines)
 	int y = 0;
-	display.setCursor(0, y); display.print(msg[0]);
+	display.setCursor(0, y);
+	display.print(msg[0]);
 	y += 9 * textSize;
-	display.setCursor(0, y); display.print(msg[1]);
+	display.setCursor(0, y); 
+	display.print(msg[1]);
 	display.display(); // actually display all of the above
 
 }
