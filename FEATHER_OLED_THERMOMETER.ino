@@ -191,7 +191,7 @@ void updateDisplay() {
 	if(min > 0 )
 		sprintf(msg[2], "Next TX: %dmin %dsec", min, sec60 );
 	else
-		sprintf(msg[2], "Next TX: %dsec", min, sec60  );
+		sprintf(msg[2], "Next TX: %dsec", sec60  );
 	
 	//print Temp and H (2 lines)
 	int y = 0;
