@@ -14,7 +14,7 @@
 float tempCelcius = 0.0f;
 float humidity = 0.0f;
 static int count = 0;
-int countMax = 1; //min - interval to send temp & humidity http updates to server
+int countMax = 15; //min - interval to send temp & humidity http updates to server
 
 
 //global devices
@@ -99,6 +99,9 @@ void setup() {
 	server.begin();
 	Serial.println("HTTP server started");
 
+	updateSensorData();
+	sendHttpData();
+	updateDisplay();
 }
 
 
@@ -107,20 +110,22 @@ void loop() {
 
 	delay(1000); //once per second
 
-	// Reading temperature or humidity takes about 250 milliseconds!
-	// Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-	humidity = dht.readHumidity();
-	tempCelcius = dht.readTemperature();
+	updateSensorData();
+	updateDisplay();
+	server.handleClient();
 
 	count++;
 	if (count >= countMax * 60 || count == 0) { //every ~30 minutes, ping server with data
 		count = 1;
 		sendHttpData();
 	}
+}
 
-	updateDisplay();
-	server.handleClient();
-
+void updateSensorData(){
+	// Reading temperature or humidity takes about 250 milliseconds!
+	// Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+	humidity = dht.readHumidity();
+	tempCelcius = dht.readTemperature();
 }
 
 void sendHttpData() {
@@ -200,7 +205,7 @@ void updateDisplay() {
 	y += 9 * textSize;
 	display.setCursor(0, y);
 	display.print(msg[1]);
-	y += 12 * textSize;
+	y += 14 * textSize;
 	display.setCursor(0, y);
 	display.print(msg[2]);
 	display.display(); // actually display all of the above
