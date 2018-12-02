@@ -4,7 +4,7 @@
 #include <Adafruit_SSD1306.h>
 #include "DisplaySetup.h"
 
-//temp sensor 
+//temp sensor
 #include "DHT.h"
 #define DHTPIN 14     // what digital pin we're connected to
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
@@ -13,6 +13,9 @@
 
 float tempCelcius = 0.0f;
 float humidity = 0.0f;
+static int count = 0;
+int countMax = 1; //min - interval to send temp & humidity http updates to server
+
 
 //global devices
 Adafruit_SSD1306 display = Adafruit_SSD1306();
@@ -38,6 +41,10 @@ void handleRoot() {
 	server.send(200, "application/json", json);
 	digitalWrite(LED_BUILTIN, HIGH);
 }
+
+// HTTP /////////////////////////////////////////////////////////////////////////////////////
+
+#include <ESP8266HTTPClient.h>
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -97,25 +104,76 @@ void setup() {
 
 void loop() {
 
-	delay(100);
+
+	delay(1000); //once per second
 
 	// Reading temperature or humidity takes about 250 milliseconds!
 	// Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
 	humidity = dht.readHumidity();
 	tempCelcius = dht.readTemperature();
 
-	updateDisplay();
+	count++;
+	if (count >= countMax * 60 || count == 0) { //every ~30 minutes, ping server with data
+		count = 1;
+		sendHttpData();
+	}
 
+	updateDisplay();
 	server.handleClient();
+
+}
+
+void sendHttpData() {
+
+	display.clearDisplay();
+	display.setTextSize(1);
+	display.setTextColor(WHITE);
+	display.setCursor(0, 0);
+	display.println("Send http...");
+	display.display(); // actually display all of the above
+
+	bool ok = false;
+	HTTPClient http;
+	char url[255];
+	sprintf(url, "http://uri.cat/thermometer/rx.php?temp=%.1f&hum=%.1f", tempCelcius, humidity);
+	//Serial.println(url);
+	http.begin(url);
+	int httpCode = http.GET();
+
+	// httpCode will be negative on error
+	if (httpCode > 0) {
+		// HTTP header has been send and Server response header has been handled
+		Serial.print("http code: ");
+		Serial.println(httpCode);
+
+		// file found at server
+		if (httpCode == HTTP_CODE_OK) {
+			String payload = http.getString();
+			Serial.print("Response: ");
+			Serial.println(payload);
+			ok = true;
+		}
+	} else {
+		Serial.print("[HTTP] GET... failed, error: ");
+		Serial.println(http.errorToString(httpCode).c_str());
+	}
+
+	http.end();
+
+	display.setCursor(0, 16);
+	char msg[64];
+	sprintf(msg, "response: %s", ok ? "ok" : "ko!");
+	display.println(msg);
+	display.display(); // actually display all of the above
 }
 
 
-void updateDisplay(){
-	
-	float textSize = 2;
-	
+void updateDisplay() {
+
+	float textSize = 1;
+
 	display.clearDisplay();
-	static char msg[2][40];
+	static char msg[3][40];
 	display.setTextSize(textSize);
 	display.setTextColor(WHITE);
 
@@ -127,14 +185,24 @@ void updateDisplay(){
 		sprintf(msg[0], "T: %0.1fc", tempCelcius);
 		sprintf(msg[1], "H: %0.1f%%", humidity);
 	}
-
+	int sec = countMax * 60 - count;
+	int min = sec / 60;
+	int sec60 = sec % 60;
+	if(min > 0 )
+		sprintf(msg[2], "Next TX: %dmin %dsec", min, sec60 );
+	else
+		sprintf(msg[2], "Next TX: %dsec", min, sec60  );
+	
 	//print Temp and H (2 lines)
 	int y = 0;
 	display.setCursor(0, y);
 	display.print(msg[0]);
 	y += 9 * textSize;
-	display.setCursor(0, y); 
+	display.setCursor(0, y);
 	display.print(msg[1]);
+	y += 12 * textSize;
+	display.setCursor(0, y);
+	display.print(msg[2]);
 	display.display(); // actually display all of the above
 
 }
