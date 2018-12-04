@@ -48,6 +48,11 @@ void handleRoot() {
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
+
+// RESET 
+void(* resetFunc) (void) = 0;//declare reset function at address 0
+
+
 void setup() {
 
 	pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
@@ -126,6 +131,11 @@ void updateSensorData(){
 	// Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
 	humidity = dht.readHumidity();
 	tempCelcius = dht.readTemperature();
+
+	if(isnan(humidity) || isnan(tempCelcius)){
+		Serial.println("Can't read from sensor! Resetting!");
+		resetFunc(); //sensor is acting up - force hw reset!
+	}
 }
 
 void sendHttpData() {
@@ -194,9 +204,9 @@ void updateDisplay() {
 	int min = sec / 60;
 	int sec60 = sec % 60;
 	if(min > 0 )
-		sprintf(msg[2], "Next TX: %d:%d min", min, sec60 );
+		sprintf(msg[2], "Next TX: %d:%02d min", min, sec60 );
 	else
-		sprintf(msg[2], "Next TX: %d sec", sec60  );
+		sprintf(msg[2], "Next TX: %02d sec", sec60  );
 	
 	//print Temp and H (2 lines)
 	int y = 0;
