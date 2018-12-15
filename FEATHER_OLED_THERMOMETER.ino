@@ -125,6 +125,7 @@ void loop() {
     }
 }
 
+
 void updateSensorData() {
     // Reading temperature or humidity takes about 250 milliseconds!
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
@@ -137,7 +138,7 @@ void updateSensorData() {
     }
 
 	float lerp = 0.33f; //each new sample affects 33% - reduce noise
-    if(firstSensorRead){
+    if(firstSensorRead){ //no averaging on first sensor read (at boot)
     	firstSensorRead = false;
     	lerp = 1.0f;
     }
@@ -145,8 +146,8 @@ void updateSensorData() {
 	
     tempCelcius = 	tempCelcius * ilerp 	+ newTempCelcius * lerp;
     humidity = 		humidity * ilerp 		+ newHumidity * lerp;
-    
 }
+
 
 void sendHttpData() {
 
